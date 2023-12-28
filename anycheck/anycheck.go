@@ -26,6 +26,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 func checkNode(node ast.Node, pass *analysis.Pass, cfg *config) bool {
 	switch n := node.(type) {
+	case *ast.Ident:
+		if n.Name == "any" && !cfg.allowAny {
+			reportInvalidAny(node, pass)
+		}
 	case *ast.InterfaceType:
 		// This is an empty interface with no methods.
 		if len(n.Methods.List) == 0 && !cfg.allowInterface {
@@ -41,5 +45,14 @@ func reportInvalidInterface(node ast.Node, pass *analysis.Pass) {
 		End:      node.End(),
 		Category: "anycheck",
 		Message:  "interface detected",
+	})
+}
+
+func reportInvalidAny(node ast.Node, pass *analysis.Pass) {
+	pass.Report(analysis.Diagnostic{
+		Pos:      node.Pos(),
+		End:      node.End(),
+		Category: "anycheck",
+		Message:  "any detected",
 	})
 }
