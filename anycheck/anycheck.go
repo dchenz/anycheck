@@ -18,25 +18,31 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	cfg := &config{}
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(node ast.Node) bool {
-			return checkNode(node, pass, cfg)
+			checkForAny(node, pass, cfg)
+			checkForInterface(node, pass, cfg)
+			return true
 		})
 	}
 	return nil, nil
 }
 
-func checkNode(node ast.Node, pass *analysis.Pass, cfg *config) bool {
+func checkForAny(node ast.Node, pass *analysis.Pass, cfg *config) {
 	switch n := node.(type) {
 	case *ast.Ident:
 		if n.Name == "any" && !cfg.allowAny {
 			reportInvalidAny(node, pass)
 		}
+	}
+}
+
+func checkForInterface(node ast.Node, pass *analysis.Pass, cfg *config) {
+	switch n := node.(type) {
 	case *ast.InterfaceType:
 		// This is an empty interface with no methods.
 		if len(n.Methods.List) == 0 && !cfg.allowInterface {
 			reportInvalidInterface(node, pass)
 		}
 	}
-	return true
 }
 
 func reportInvalidInterface(node ast.Node, pass *analysis.Pass) {
