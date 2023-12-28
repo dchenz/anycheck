@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dchenz/anycheck/anycheck"
+	anycheck "github.com/dchenz/anycheck/analyzer"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 

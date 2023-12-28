@@ -2,57 +2,44 @@ package anycheck
 
 import (
 	"go/ast"
-
-	"golang.org/x/tools/go/analysis"
 )
 
-func NewAnalyzer() *analysis.Analyzer {
-	return &analysis.Analyzer{
-		Name: "anycheck",
-		Doc:  "checks the usage of 'interface{}' and 'any' in go code",
-		Run:  run,
-	}
+type Linter struct {
+	cfg config
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
-	cfg := &config{}
+func NewLinter() *Linter {
+	return &Linter{}
+}
+
+func (l *Linter) Run(nodes []ast.Node) []Issue {
 	issues := []Issue{}
-	for _, file := range pass.Files {
-		ast.Inspect(file, func(node ast.Node) bool {
-			if newIssue := checkForAny(node, cfg); newIssue != nil {
-				issues = append(issues, newIssue)
-			}
-			if newIssue := checkForInterface(node, cfg); newIssue != nil {
-				issues = append(issues, newIssue)
-			}
-			return true
-		})
+	for _, node := range nodes {
+		if newIssue := l.checkForAny(node); newIssue != nil {
+			issues = append(issues, newIssue)
+		}
+		if newIssue := l.checkForInterface(node); newIssue != nil {
+			issues = append(issues, newIssue)
+		}
 	}
-	for _, issue := range issues {
-		pass.Report(analysis.Diagnostic{
-			Pos:      issue.Pos(),
-			Category: "anycheck",
-			Message:  issue.Message(),
-		})
-	}
-	return nil, nil
+	return issues
 }
 
-func checkForAny(node ast.Node, cfg *config) Issue {
+func (l *Linter) checkForAny(node ast.Node) Issue {
 	switch n := node.(type) {
 	case *ast.Ident:
-		if n.Name == "any" && !cfg.allowAny {
+		if n.Name == "any" && !l.cfg.allowAny {
 			return anyNotAllowed{pos: node.Pos()}
 		}
 	}
 	return nil
 }
 
-func checkForInterface(node ast.Node, cfg *config) Issue {
+func (l *Linter) checkForInterface(node ast.Node) Issue {
 	switch n := node.(type) {
 	case *ast.InterfaceType:
 		// This is an empty interface with no methods.
-		if len(n.Methods.List) == 0 && !cfg.allowInterface {
+		if len(n.Methods.List) == 0 && !l.cfg.allowInterface {
 			return interfaceNotAllowed{pos: node.Pos()}
 		}
 	}
