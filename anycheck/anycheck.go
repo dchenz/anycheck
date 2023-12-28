@@ -16,49 +16,45 @@ func NewAnalyzer() *analysis.Analyzer {
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	cfg := &config{}
+	issues := []Issue{}
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(node ast.Node) bool {
-			checkForAny(node, pass, cfg)
-			checkForInterface(node, pass, cfg)
+			if newIssue := checkForAny(node, cfg); newIssue != nil {
+				issues = append(issues, newIssue)
+			}
+			if newIssue := checkForInterface(node, cfg); newIssue != nil {
+				issues = append(issues, newIssue)
+			}
 			return true
+		})
+	}
+	for _, issue := range issues {
+		pass.Report(analysis.Diagnostic{
+			Pos:      issue.Pos(),
+			Category: "anycheck",
+			Message:  issue.Message(),
 		})
 	}
 	return nil, nil
 }
 
-func checkForAny(node ast.Node, pass *analysis.Pass, cfg *config) {
+func checkForAny(node ast.Node, cfg *config) Issue {
 	switch n := node.(type) {
 	case *ast.Ident:
 		if n.Name == "any" && !cfg.allowAny {
-			reportInvalidAny(node, pass)
+			return anyNotAllowed{pos: node.Pos()}
 		}
 	}
+	return nil
 }
 
-func checkForInterface(node ast.Node, pass *analysis.Pass, cfg *config) {
+func checkForInterface(node ast.Node, cfg *config) Issue {
 	switch n := node.(type) {
 	case *ast.InterfaceType:
 		// This is an empty interface with no methods.
 		if len(n.Methods.List) == 0 && !cfg.allowInterface {
-			reportInvalidInterface(node, pass)
+			return interfaceNotAllowed{pos: node.Pos()}
 		}
 	}
-}
-
-func reportInvalidInterface(node ast.Node, pass *analysis.Pass) {
-	pass.Report(analysis.Diagnostic{
-		Pos:      node.Pos(),
-		End:      node.End(),
-		Category: "anycheck",
-		Message:  "interface detected",
-	})
-}
-
-func reportInvalidAny(node ast.Node, pass *analysis.Pass) {
-	pass.Report(analysis.Diagnostic{
-		Pos:      node.Pos(),
-		End:      node.End(),
-		Category: "anycheck",
-		Message:  "any detected",
-	})
+	return nil
 }
