@@ -1,22 +1,55 @@
 package analyzer
 
 import (
+	"fmt"
 	"go/ast"
 
 	"github.com/dchenz/anycheck/anycheck"
 	"golang.org/x/tools/go/analysis"
 )
 
-func NewAnalyzer() *analysis.Analyzer {
+const (
+	vAny       = "any"
+	vInterface = "interface"
+)
+
+type LinterSettings struct {
+	Prefer string
+}
+
+type analyzer struct {
+	allowAny       bool
+	allowInterface bool
+}
+
+func NewAnalyzer(settings LinterSettings) (*analysis.Analyzer, error) {
+	a := analyzer{}
+
+	if settings.Prefer == "" {
+		settings.Prefer = vAny
+	}
+
+	switch settings.Prefer {
+	case vAny:
+		a.allowAny = true
+	case vInterface:
+		a.allowInterface = true
+	default:
+		return nil, fmt.Errorf("expected '%s' or '%s' as preference", vAny, vInterface)
+	}
+
 	return &analysis.Analyzer{
 		Name: "anycheck",
 		Doc:  "checks the usage of 'interface{}' and 'any' in go code",
-		Run:  run,
-	}
+		Run:  a.run,
+	}, nil
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
-	linter, err := anycheck.NewLinter()
+func (a *analyzer) run(pass *analysis.Pass) (interface{}, error) {
+	linter, err := anycheck.NewLinter(
+		anycheck.SetAllowAny(a.allowAny),
+		anycheck.SetAllowInterface(a.allowInterface),
+	)
 	if err != nil {
 		return nil, err
 	}
