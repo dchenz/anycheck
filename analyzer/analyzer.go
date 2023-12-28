@@ -16,7 +16,10 @@ func NewAnalyzer() *analysis.Analyzer {
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
-	linter := anycheck.NewLinter()
+	linter, err := anycheck.NewLinter()
+	if err != nil {
+		return nil, err
+	}
 	for _, file := range pass.Files {
 		issues := linter.Run(collectNodes(file))
 		for _, issue := range issues {

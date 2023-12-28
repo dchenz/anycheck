@@ -8,8 +8,14 @@ type Linter struct {
 	cfg config
 }
 
-func NewLinter() *Linter {
-	return &Linter{}
+func NewLinter(options ...Option) (*Linter, error) {
+	cfg := config{}
+	for _, option := range options {
+		if err := option.apply(&cfg); err != nil {
+			return nil, err
+		}
+	}
+	return &Linter{cfg}, nil
 }
 
 func (l *Linter) Run(nodes []ast.Node) []Issue {
