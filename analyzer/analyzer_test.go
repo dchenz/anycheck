@@ -17,3 +17,14 @@ func TestPreferInterface(t *testing.T) {
 	testdata := filepath.Join(analysistest.TestData(), "prefer_interface")
 	analysistest.Run(t, testdata, a)
 }
+
+func TestPreferAny(t *testing.T) {
+	a, err := NewAnalyzer(LinterSettings{
+		Prefer: vAny,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	testdata := filepath.Join(analysistest.TestData(), "prefer_any")
+	analysistest.Run(t, testdata, a)
+}
