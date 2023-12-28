@@ -1,3 +1,7 @@
+run:
+  skip-dirs:
+    - analyzer/testdata
+
 linters:
   enable:
     - errcheck
